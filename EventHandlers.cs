@@ -43,9 +43,9 @@ namespace CampingOpenGates
             if (CurDoor == DoorType.GateA ||  CurDoor == DoorType.GateB)
             {
                 Cassie.MessageTranslated(
-                plugin.Translation.DoorMalfunctionMessage.CassieText.Replace("{ROOM}", RoomPron.CassieText).
+                plugin.Translation.GateMalfunctionMessage.CassieText.Replace("{ROOM}", RoomPron.CassieText).
                 Replace("{SECONDS}", plugin.Config.DoorFrozenTime.ToString()),
-                plugin.Translation.DoorMalfunctionMessage.CaptionText.Replace("{ROOM}", RoomPron.CaptionText).
+                plugin.Translation.GateMalfunctionMessage.CaptionText.Replace("{ROOM}", RoomPron.CaptionText).
                 Replace("{SECONDS}", plugin.Config.DoorFrozenTime.ToString())
                 );
             }
@@ -63,53 +63,57 @@ namespace CampingOpenGates
 
         public static void Scan()
         {
-            try
+            List<Player> AlivePlayers = GetAlivePlayers();
+
+            if (AlivePlayers.Count > plugin.Config.NumberOfPlayers)
             {
-                List<Player> AlivePlayers = GetAlivePlayers();
-                if (AlivePlayers.Count <= plugin.Config.NumberOfPlayers)
+                return;
+            }
+
+            foreach (Player CurPlayer in AlivePlayers)
+            {
+                if (CheckBoundaries(CurPlayer.CurrentRoom.Type, CurPlayer.Position) && 
+                    plugin.Config.CampRooms[CurPlayer.CurrentRoom.Type].All(DoorType => Door.Get(DoorType).IsOpen == false))
                 {
-                    foreach (Player CurPlayer in AlivePlayers)
+                    if (PlayerScans[CurPlayer.UserId]++ >= plugin.Config.CampingLimit)
                     {
-                        if (CheckBoundaries(CurPlayer.CurrentRoom.Type, CurPlayer.Position) && 
-                            plugin.Config.CampRooms[CurPlayer.CurrentRoom.Type].All(DoorType => Door.Get(DoorType).IsOpen == false))
+                        PlayerScans[CurPlayer.UserId] = 0;
+                        bool sentMessage = false;
+
+                        foreach (DoorType CurDoor in plugin.Config.CampRooms[CurPlayer.CurrentRoom.Type])
                         {
-                            Log.Debug(CurPlayer.CurrentRoom.Type.ToString() + " " + PlayerScans[CurPlayer.UserId].ToString());
-                            if (PlayerScans[CurPlayer.UserId]++ >= plugin.Config.CampingLimit)
+                            Door CampDoor = Door.Get(CurDoor);
+
+                            if (CampDoor.IsOpen == true)
                             {
-                                PlayerScans[CurPlayer.UserId] = 0;
-                                bool sentMessage = false;
-                                foreach (DoorType CurDoor in plugin.Config.CampRooms[CurPlayer.CurrentRoom.Type])
-                                {
-                                    Door CampDoor = Door.Get(CurDoor);
-                                    CampDoor.IsOpen = true;
-                                    CampDoor.Lock(plugin.Config.DoorFrozenTime, DoorLockType.NoPower);
-
-                                    if (!sentMessage)
-                                    {
-                                        SendCassieMessage(CurDoor, CurPlayer.CurrentRoom.Type);
-                                        sentMessage = true;
-                                    }
-
-                                    if (plugin.Config.CloseDoor)
-                                    {
-                                        Timing.CallDelayed(plugin.Config.DoorFrozenTime, () =>
-                                        {
-                                            CampDoor.IsOpen = false;
-                                        });
-                                    }
-                                }
+                                continue;
                             }
-                        }
-                        else
-                        {
-                            PlayerScans[CurPlayer.UserId] = 0;
+
+                            CampDoor.IsOpen = true;
+                            CampDoor.Lock(plugin.Config.DoorFrozenTime, DoorLockType.NoPower);
+
+                            if (!sentMessage)
+                            {
+                                SendCassieMessage(CurDoor, CurPlayer.CurrentRoom.Type);
+                                sentMessage = true;
+                            }
+
+                            if (plugin.Config.CloseDoor)
+                            {
+                                Timing.CallDelayed(plugin.Config.DoorFrozenTime, () =>
+                                {
+                                    CampDoor.IsOpen = false;
+                                });
+                            }
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
+                else
+                {
+                    PlayerScans[CurPlayer.UserId] = 0;
+                }
+
+                Log.Debug(CurPlayer.CurrentRoom.Type.ToString() + " " + PlayerScans[CurPlayer.UserId].ToString());
             }
         }
 
