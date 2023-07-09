@@ -24,23 +24,49 @@ namespace CampingOpenGates
 
         private static List<Player> GetAlivePlayers()
         {
-            List<Player> AlivePlayers = new List<Player> { };
-            foreach (Player CurPlayer in Player.List)
+            List<Player> alivePlayers = new List<Player> { };
+            foreach (Player curPlayer in Player.List)
             {
-                if (CurPlayer.IsAlive && CurPlayer.Role.Team != Team.OtherAlive && CurPlayer.Role.Team != Team.SCPs)
+                if (curPlayer.IsAlive && curPlayer.Role.Team != Team.OtherAlive && curPlayer.Role.Team != Team.SCPs)
                 {
-                    AlivePlayers.Add(CurPlayer);
+                    alivePlayers.Add(curPlayer);
                 }
             }
-            return AlivePlayers;
+            return alivePlayers;
         }
 
-        private static void SendCassieMessage(DoorType CurDoor, RoomType CurRoom)
+        private static List<Player> GetAliveScps()
         {
-            CassieMessage DoorPron = plugin.Translation.DoorPronounciation[CurDoor];
-            CassieMessage RoomPron = plugin.Translation.RoomPronounciation[CurRoom];
+            List<Player> AliveScps = new List<Player> { };
+            foreach (Player CurPlayer in Player.List)
+            {
+                if (CurPlayer.IsAlive && CurPlayer.Role.Team == Team.SCPs)
+                {
+                    AliveScps.Add(CurPlayer);
+                }
+            }
+            return AliveScps;
+        }
 
-            if (CurDoor == DoorType.GateA ||  CurDoor == DoorType.GateB)
+        private static bool CheckScpInRoom(List<Player> scps, RoomType curRoom)
+        {
+            foreach(Player curScp in scps)
+            {
+                if (curScp.CurrentRoom.Type == curRoom && CheckBoundaries(curScp.CurrentRoom.Type, curScp.Position))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+
+        private static void SendCassieMessage(DoorType curDoor, RoomType curRoom)
+        {
+            CassieMessage DoorPron = plugin.Translation.DoorPronounciation[curDoor];
+            CassieMessage RoomPron = plugin.Translation.RoomPronounciation[curRoom];
+
+            if (curDoor == DoorType.GateA || curDoor == DoorType.GateB)
             {
                 Cassie.MessageTranslated(
                 plugin.Translation.GateMalfunctionMessage.CassieText.Replace("{ROOM}", RoomPron.CassieText).
@@ -63,26 +89,28 @@ namespace CampingOpenGates
 
         public static void Scan()
         {
-            List<Player> AlivePlayers = GetAlivePlayers();
+            List<Player> alivePlayers = GetAlivePlayers();
+            List<Player> aliveScps = GetAliveScps();
 
-            if (AlivePlayers.Count > plugin.Config.NumberOfPlayers)
+            if (alivePlayers.Count > plugin.Config.NumberOfPlayers)
             {
                 return;
             }
 
-            foreach (Player CurPlayer in AlivePlayers)
+            foreach (Player curPlayer in alivePlayers)
             {
-                if (CheckBoundaries(CurPlayer.CurrentRoom.Type, CurPlayer.Position) && 
-                    plugin.Config.CampRooms[CurPlayer.CurrentRoom.Type].All(DoorType => Door.Get(DoorType).IsOpen == false))
+                if (CheckBoundaries(curPlayer.CurrentRoom.Type, curPlayer.Position) && 
+                    plugin.Config.CampRooms[curPlayer.CurrentRoom.Type].All(DoorType => Door.Get(DoorType).IsOpen == false) &&
+                    !CheckScpInRoom(aliveScps, curPlayer.CurrentRoom.Type))
                 {
-                    if (PlayerScans[CurPlayer.UserId]++ >= plugin.Config.CampingLimit)
+                    if (PlayerScans[curPlayer.UserId]++ >= plugin.Config.CampingLimit)
                     {
-                        PlayerScans[CurPlayer.UserId] = 0;
+                        PlayerScans[curPlayer.UserId] = 0;
                         bool sentMessage = false;
 
-                        foreach (DoorType CurDoor in plugin.Config.CampRooms[CurPlayer.CurrentRoom.Type])
+                        foreach (DoorType curDoor in plugin.Config.CampRooms[curPlayer.CurrentRoom.Type])
                         {
-                            Door CampDoor = Door.Get(CurDoor);
+                            Door CampDoor = Door.Get(curDoor);
 
                             if (CampDoor.IsOpen == true)
                             {
@@ -94,7 +122,7 @@ namespace CampingOpenGates
 
                             if (!sentMessage)
                             {
-                                SendCassieMessage(CurDoor, CurPlayer.CurrentRoom.Type);
+                                SendCassieMessage(curDoor, curPlayer.CurrentRoom.Type);
                                 sentMessage = true;
                             }
 
@@ -107,13 +135,13 @@ namespace CampingOpenGates
                             }
                         }
                     }
+
+                    Log.Debug(curPlayer.CurrentRoom.Type.ToString() + " " + PlayerScans[curPlayer.UserId].ToString());
                 }
                 else
                 {
-                    PlayerScans[CurPlayer.UserId] = 0;
-                }
-
-                Log.Debug(CurPlayer.CurrentRoom.Type.ToString() + " " + PlayerScans[CurPlayer.UserId].ToString());
+                    PlayerScans[curPlayer.UserId] = 0;
+                } 
             }
         }
 
