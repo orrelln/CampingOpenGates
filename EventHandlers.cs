@@ -37,15 +37,15 @@ namespace CampingOpenGates
 
         private static List<Player> GetAliveScps()
         {
-            List<Player> AliveScps = new List<Player> { };
-            foreach (Player CurPlayer in Player.List)
+            List<Player> aliveScps = new List<Player> { };
+            foreach (Player curPlayer in Player.List)
             {
-                if (CurPlayer.IsAlive && CurPlayer.Role.Team == Team.SCPs)
+                if (curPlayer.IsAlive && curPlayer.Role.Team == Team.SCPs)
                 {
-                    AliveScps.Add(CurPlayer);
+                    aliveScps.Add(curPlayer);
                 }
             }
-            return AliveScps;
+            return aliveScps;
         }
 
         private static bool CheckScpInRoom(List<Player> scps, RoomType curRoom)
@@ -200,43 +200,43 @@ namespace CampingOpenGates
                 case RoomType.Surface:
                     return true;
                 case RoomType.EzGateA:  
-                    Vector3 GateA = Door.Get(DoorType.GateA).Position;
-                    Vector3 GateAElevator = Door.Get(DoorType.ElevatorGateA).Position;
-                    return VectorCheck.IsWithinRange(GateA, GateAElevator, player);
+                    Vector3 gateA = Door.Get(DoorType.GateA).Position;
+                    Vector3 gateAElevator = Door.Get(DoorType.ElevatorGateA).Position;
+                    return VectorCheck.IsWithinRange(gateA, gateAElevator, player);
                 case RoomType.EzGateB:
-                    Vector3 GateB = Door.Get(DoorType.GateB).Position;
-                    Vector3 GateBElevator = Door.Get(DoorType.ElevatorGateB).Position;
-                    return VectorCheck.IsWithinRange(GateB, GateBElevator, player);
+                    Vector3 gateB = Door.Get(DoorType.GateB).Position;
+                    Vector3 gateBElevator = Door.Get(DoorType.ElevatorGateB).Position;
+                    return VectorCheck.IsWithinRange(gateB, gateBElevator, player);
                 case RoomType.HczArmory:
-                    Vector3 ArmoryDoor = Door.Get(DoorType.HczArmory).Position;
-                    List<Vector3> OuterArmoryDoors = Door.List.Where((Door door) => door.Type == DoorType.HeavyContainmentDoor).OrderBy((Door door) => 
-                                                     Vector3.Distance(ArmoryDoor, door.Position)).Take(3).Select(d => d.Position).ToList();
-                    Vector3 OuterArmoryDoor = VectorCheck.SelectMostDissimilarVector(OuterArmoryDoors);
-                    return VectorCheck.IsPastInternalWithBoundaries(OuterArmoryDoor, ArmoryDoor, player, -1.85f, 1.85f);
+                    Vector3 armoryDoor = Door.Get(DoorType.HczArmory).Position;
+                    List<Vector3> outerArmoryDoors = Door.List.Where((Door door) => door.Type == DoorType.HeavyContainmentDoor).OrderBy((Door door) => 
+                                                     Vector3.Distance(armoryDoor, door.Position)).Take(3).Select(d => d.Position).ToList();
+                    Vector3 outerArmoryDoor = VectorCheck.SelectMostDissimilarVector(outerArmoryDoors);
+                    return VectorCheck.IsPastInternalWithBoundaries(outerArmoryDoor, armoryDoor, player, -1.85f, 1.85f);
                 case RoomType.HczHid:
-                    Vector3 HidDoor = Door.Get(DoorType.HID).Position;
-                    Vector3 HidLeftDoor = Door.Get(DoorType.HIDLeft).Position;
-                    return VectorCheck.IsPastInternalWithBoundaries(HidLeftDoor, HidDoor, player, -2.74f, 2.74f, true);
+                    Vector3 hidDoor = Door.Get(DoorType.HID).Position;
+                    Vector3 hidLeftDoor = Door.Get(DoorType.HIDLeft).Position;
+                    return VectorCheck.IsPastInternalWithBoundaries(hidLeftDoor, hidDoor, player, -2.74f, 2.74f, true);
                 case RoomType.Hcz096:
-                    Vector3 Scp096Door = Door.Get(DoorType.Scp096).Position;
-                    Vector3 OuterScp096Door = Door.List.Where((Door door) => door.Type == DoorType.HeavyContainmentDoor).OrderBy((Door door) => 
-                                              Vector3.Distance(Scp096Door, door.Position)).FirstOrDefault().Position;
-                    return VectorCheck.IsPastInternal(OuterScp096Door, Scp096Door, player);
+                    Vector3 scp096Door = Door.Get(DoorType.Scp096).Position;
+                    Vector3 outerScp096Door = Door.List.Where((Door door) => door.Type == DoorType.HeavyContainmentDoor).OrderBy((Door door) => 
+                                              Vector3.Distance(scp096Door, door.Position)).FirstOrDefault().Position;
+                    return VectorCheck.IsPastInternal(outerScp096Door, scp096Door, player);
                 case RoomType.Hcz106:
-                    Vector3 Scp106Door = Door.Get(DoorType.Scp106Primary).Position;
-                    Vector3 OuterScp106Door = Door.List.Where((Door door) => door.Type == DoorType.HeavyContainmentDoor).OrderBy((Door door) => 
-                                              Vector3.Distance(Scp106Door, door.Position)).FirstOrDefault().Position;
-                    return VectorCheck.IsPastInternal(OuterScp106Door, Scp106Door, player);
+                    Vector3 scp106Door = Door.Get(DoorType.Scp106Primary).Position;
+                    Vector3 outerScp106Door = Door.List.Where((Door door) => door.Type == DoorType.HeavyContainmentDoor).OrderBy((Door door) => 
+                                              Vector3.Distance(scp106Door, door.Position)).FirstOrDefault().Position;
+                    return VectorCheck.IsPastInternal(outerScp106Door, scp106Door, player);
                 case RoomType.Hcz049:
-                    Vector3 Scp049ArmoryDoor = Door.Get(DoorType.Scp049Armory).Position;
-                    Vector3 Scp049ElevatorDoor = Door.Get(DoorType.ElevatorScp049).Position;
-                    return VectorCheck.IsPastInternalWithBoundaries(Scp049ElevatorDoor, Scp049ArmoryDoor, player, -2.1f, 2.1f);
+                    Vector3 scp049ArmoryDoor = Door.Get(DoorType.Scp049Armory).Position;
+                    Vector3 scp049ElevatorDoor = Door.Get(DoorType.ElevatorScp049).Position;
+                    return VectorCheck.IsPastInternalWithBoundaries(scp049ElevatorDoor, scp049ArmoryDoor, player, -2.1f, 2.1f);
                 case RoomType.EzIntercom:
-                    Vector3 IntercomDoor = Door.Get(DoorType.Intercom).Position;
-                    List<Vector3> OuterIntercomDoors = Door.List.Where((Door door) => door.Type == DoorType.EntranceDoor).OrderBy((Door door) => 
-                                                       Vector3.Distance(IntercomDoor, door.Position)).Take(2).Select(d => d.Position).ToList();
-                    Vector3 OuterIntercomDoor = VectorCheck.SelectMostSimilarVector(IntercomDoor, OuterIntercomDoors);
-                    return VectorCheck.IsPastInternal(OuterIntercomDoor, IntercomDoor, player) || player.y < -1000;
+                    Vector3 intercomDoor = Door.Get(DoorType.Intercom).Position;
+                    List<Vector3> outerIntercomDoors = Door.List.Where((Door door) => door.Type == DoorType.EntranceDoor).OrderBy((Door door) => 
+                                                       Vector3.Distance(intercomDoor, door.Position)).Take(2).Select(d => d.Position).ToList();
+                    Vector3 outerIntercomDoor = VectorCheck.SelectMostSimilarVector(intercomDoor, outerIntercomDoors);
+                    return VectorCheck.IsPastInternal(outerIntercomDoor, intercomDoor, player) || player.y < -1000;
                 default:
                     return false;
             }
