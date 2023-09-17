@@ -11,6 +11,7 @@ using Exiled.API.Enums;
 using Exiled.Events.EventArgs.Player;
 using Utils.NonAllocLINQ;
 using UnityEngine;
+using Exiled.API.Features.Doors;
 
 namespace CampingOpenGates
 {
