@@ -49,18 +49,30 @@ namespace CampingOpenGates
             return aliveScps;
         }
 
-        private static bool CheckScpInRoom(List<Player> scps, RoomType curRoom)
+        private static bool CheckPlayersInRoom(List<Player> players, RoomType curRoom)
         {
-            foreach(Player curScp in scps)
+            foreach(Player curPlayer in players)
             {
-                if (curScp.CurrentRoom.Type == curRoom && CheckBoundaries(curScp.CurrentRoom.Type, curScp.Position))
+                if (curPlayer.CurrentRoom.Type == curRoom && CheckBoundaries(curPlayer.CurrentRoom.Type, curPlayer.Position))
                 {
                     return true;
                 }
             }
             return false;
         }
-        
+
+        private static bool CheckDoorsOpen(RoomType curRoom)
+        {
+            if (curRoom == RoomType.Hcz079)
+            {
+                return plugin.Config.CampRooms[curRoom].Any(DoorType => Door.Get(DoorType).IsOpen == false);
+            }
+            else
+            {
+                return plugin.Config.CampRooms[curRoom].All(DoorType => Door.Get(DoorType).IsOpen == false);
+            }
+        }
+
 
         private static void SendCassieMessage(DoorType curDoor, RoomType curRoom)
         {
@@ -88,62 +100,90 @@ namespace CampingOpenGates
           
         }
 
+        private static void OpenDoors(RoomType room)
+        {
+            bool sentMessage = false;
+
+            foreach (DoorType curDoor in plugin.Config.CampRooms[room])
+            {
+                Door CampDoor = Door.Get(curDoor);
+
+                if (CampDoor.IsOpen == true)
+                {
+                    continue;
+                }
+
+                CampDoor.IsOpen = true;
+                CampDoor.Lock(plugin.Config.DoorFrozenTime, DoorLockType.NoPower);
+
+                if (!sentMessage)
+                {
+                    SendCassieMessage(curDoor, room);
+                    sentMessage = true;
+                }
+
+                if (plugin.Config.CloseDoor)
+                {
+                    Timing.CallDelayed(plugin.Config.DoorFrozenTime, () =>
+                    {
+                        CampDoor.IsOpen = false;
+                    });
+                }
+            }
+        }
+        
+
         public static void Scan()
         {
             List<Player> alivePlayers = GetAlivePlayers();
             List<Player> aliveScps = GetAliveScps();
 
-            if (alivePlayers.Count > plugin.Config.NumberOfPlayers)
+            if (alivePlayers.Count <= plugin.Config.NumberOfPlayers)
             {
-                return;
-            }
-
-            foreach (Player curPlayer in alivePlayers)
-            {
-                if (CheckBoundaries(curPlayer.CurrentRoom.Type, curPlayer.Position) && 
-                    plugin.Config.CampRooms[curPlayer.CurrentRoom.Type].All(DoorType => Door.Get(DoorType).IsOpen == false) &&
-                    !CheckScpInRoom(aliveScps, curPlayer.CurrentRoom.Type))
+                foreach (Player curPlayer in alivePlayers)
                 {
-                    if (PlayerScans[curPlayer.UserId]++ >= plugin.Config.CampingLimit)
+                    if (CheckBoundaries(curPlayer.CurrentRoom.Type, curPlayer.Position) &&
+                        CheckDoorsOpen(curPlayer.CurrentRoom.Type) &&
+                        !CheckPlayersInRoom(aliveScps, curPlayer.CurrentRoom.Type))
+                    {
+                        if (PlayerScans[curPlayer.UserId]++ >= plugin.Config.CampingLimit)
+                        {
+                            PlayerScans[curPlayer.UserId] = 0;
+                            OpenDoors(curPlayer.CurrentRoom.Type);
+                        }
+
+                        Log.Debug(curPlayer.CurrentRoom.Type.ToString() + " " + PlayerScans[curPlayer.UserId].ToString());
+                    }
+                    else
                     {
                         PlayerScans[curPlayer.UserId] = 0;
-                        bool sentMessage = false;
-
-                        foreach (DoorType curDoor in plugin.Config.CampRooms[curPlayer.CurrentRoom.Type])
-                        {
-                            Door CampDoor = Door.Get(curDoor);
-
-                            if (CampDoor.IsOpen == true)
-                            {
-                                continue;
-                            }
-
-                            CampDoor.IsOpen = true;
-                            CampDoor.Lock(plugin.Config.DoorFrozenTime, DoorLockType.NoPower);
-
-                            if (!sentMessage)
-                            {
-                                SendCassieMessage(curDoor, curPlayer.CurrentRoom.Type);
-                                sentMessage = true;
-                            }
-
-                            if (plugin.Config.CloseDoor)
-                            {
-                                Timing.CallDelayed(plugin.Config.DoorFrozenTime, () =>
-                                {
-                                    CampDoor.IsOpen = false;
-                                });
-                            }
-                        }
                     }
-
-                    Log.Debug(curPlayer.CurrentRoom.Type.ToString() + " " + PlayerScans[curPlayer.UserId].ToString());
                 }
-                else
-                {
-                    PlayerScans[curPlayer.UserId] = 0;
-                } 
             }
+
+            if (plugin.Config.SurfaceScpCheck)
+            {
+                foreach (Player curScp in aliveScps)
+                {
+                    if (curScp.CurrentRoom.Type == RoomType.Surface &&
+                        CheckDoorsOpen(curScp.CurrentRoom.Type) &&
+                        !CheckPlayersInRoom(alivePlayers, curScp.CurrentRoom.Type))
+                    {
+                        if (PlayerScans[curScp.UserId]++ >= plugin.Config.CampingLimit)
+                        {
+                            PlayerScans[curScp.UserId] = 0;
+                            OpenDoors(curScp.CurrentRoom.Type);
+                        }
+
+                        Log.Debug(curScp.CurrentRoom.Type.ToString() + " " + PlayerScans[curScp.UserId].ToString());
+                    }
+                    else
+                    {
+                        PlayerScans[curScp.UserId] = 0;
+                    }
+                }
+            }
+           
         }
 
         public IEnumerator<float> ScanLoop()
@@ -202,8 +242,9 @@ namespace CampingOpenGates
                     return true;
                 case RoomType.EzGateA:  
                     Vector3 gateA = Door.Get(DoorType.GateA).Position;
-                    Vector3 gateAElevator = Door.Get(DoorType.ElevatorGateA).Position;
-                    return VectorCheck.IsWithinRange(gateA, gateAElevator, player);
+                    Vector3 gateAEntranceDoor = Door.List.Where((Door door) => door.Type == DoorType.EntranceDoor).OrderBy((Door door) =>
+                                              Vector3.Distance(gateA, door.Position)).FirstOrDefault().Position;
+                    return VectorCheck.IsPastInternal(gateAEntranceDoor, gateA, player);
                 case RoomType.EzGateB:
                     Vector3 gateB = Door.Get(DoorType.GateB).Position;
                     Vector3 gateBElevator = Door.Get(DoorType.ElevatorGateB).Position;
@@ -238,6 +279,11 @@ namespace CampingOpenGates
                                                        Vector3.Distance(intercomDoor, door.Position)).Take(2).Select(d => d.Position).ToList();
                     Vector3 outerIntercomDoor = VectorCheck.SelectMostSimilarVector(intercomDoor, outerIntercomDoors);
                     return VectorCheck.IsPastInternal(outerIntercomDoor, intercomDoor, player) || player.y < -1000;
+                case RoomType.Hcz079:
+                    Vector3 scp079FirstDoor = Door.Get(DoorType.Scp079First).Position;
+                    Vector3 outerScp079Door = Door.List.Where((Door door) => door.Type == DoorType.HeavyContainmentDoor).OrderBy((Door door) =>
+                                              Vector3.Distance(scp079FirstDoor, door.Position)).FirstOrDefault().Position;
+                    return VectorCheck.IsPastInternalWithRoom(outerScp079Door, scp079FirstDoor, player, 3.0f);
                 default:
                     return false;
             }

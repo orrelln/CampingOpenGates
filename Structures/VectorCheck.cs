@@ -26,6 +26,20 @@ public class VectorCheck
             : i.z > e.z ? v.z > i.z : v.z < i.z;
     }
 
+    public static bool IsPastInternalWithRoom(Vector3 e, Vector3 i, Vector3 v, float offset)
+    {
+        bool isDoorsAlignedAlongX = Mathf.Abs(e.x - i.x) > Mathf.Abs(e.z - i.z);
+        bool pastDoors = isDoorsAlignedAlongX
+            ? i.x > e.x ? v.x > i.x : v.x < i.x
+            : i.z > e.z ? v.z > i.z : v.z < i.z;
+
+        bool inRoomComplex = isDoorsAlignedAlongX
+           ? i.x > e.x ? v.z < i.z - offset : v.z > i.z + offset
+           : i.z > e.z ? v.x > i.x + offset : v.x < i.x - offset;
+
+        return pastDoors || inRoomComplex;
+    }
+
     public static bool IsPastInternalWithBoundaries(Vector3 e, Vector3 i, Vector3 v, float b1, float b2, bool invert = false)
     {
         return (Mathf.Abs(e.x - i.x) > Mathf.Abs(e.z - i.z)) ^ invert

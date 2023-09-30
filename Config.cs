@@ -25,6 +25,9 @@ namespace CampingOpenGates
         [Description("Determines if the door automatically closes or not after door frozen time is up.")]
         public bool CloseDoor { get; set; } = true;
 
+        [Description("Determines if SCPs trapped on surface w/o players triggers camping dection.")]
+        public bool SurfaceScpCheck { get; set; } = true;
+
         [Description("Determines which rooms (and their doors) are unlocked on camping detected.")]
         public Dictionary<RoomType, List<DoorType>> CampRooms { get; set; } = new Dictionary<RoomType, List<DoorType>>
         {
@@ -35,7 +38,7 @@ namespace CampingOpenGates
             { RoomType.HczArmory, new List<DoorType> { DoorType.HczArmory } },
             { RoomType.HczHid, new List<DoorType> { DoorType.HID } },
             { RoomType.Hcz049, new List < DoorType > { DoorType.Scp049Armory } },
-            { RoomType.Hcz079, new List < DoorType > { DoorType.Scp079Armory } },
+            { RoomType.Hcz079, new List < DoorType > { DoorType.Scp079Armory, DoorType.Scp079First, DoorType.Scp079Second } },
             { RoomType.Hcz096, new List < DoorType > { DoorType.Scp096 } },
             { RoomType.Hcz106, new List < DoorType > { DoorType.Scp106Primary, DoorType.Scp106Secondary } },
             
