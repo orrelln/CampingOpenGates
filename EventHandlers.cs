@@ -20,6 +20,7 @@ namespace CampingOpenGates
         private static Plugin plugin;
         private static List<CoroutineHandle> Coroutines = new List<CoroutineHandle> { };
         private static Dictionary<string, int> PlayerScans = new Dictionary<string, int>();
+        private static HashSet<DoorType> FrozenDoors = new HashSet<DoorType>();
         public EventHandlers(Plugin P) => plugin = P;
 
 
@@ -65,11 +66,11 @@ namespace CampingOpenGates
         {
             if (curRoom == RoomType.Hcz079)
             {
-                return plugin.Config.CampRooms[curRoom].Any(DoorType => Door.Get(DoorType).IsOpen == false && Door.Get(DoorType).IsMoving == false);
+                return plugin.Config.CampRooms[curRoom].Any(DoorType => Door.Get(DoorType).IsOpen == false && FrozenDoors.Contains(DoorType));
             }
             else
             {
-                return plugin.Config.CampRooms[curRoom].All(DoorType => Door.Get(DoorType).IsOpen == false && Door.Get(DoorType).IsMoving == false);
+                return plugin.Config.CampRooms[curRoom].All(DoorType => Door.Get(DoorType).IsOpen == false && FrozenDoors.Contains(DoorType));
             }
         }
 
@@ -108,18 +109,20 @@ namespace CampingOpenGates
             {
                 Door CampDoor = Door.Get(curDoor);
 
-                if (CampDoor.IsOpen == true || CampDoor.IsMoving == true)
+                if (CampDoor.IsOpen == true || FrozenDoors.Contains(CampDoor.Type))
                 {
                     continue;
                 }
 
+                
                 CampDoor.IsOpen = true;
                 CampDoor.Lock(plugin.Config.DoorFrozenTime, DoorLockType.NoPower);
+                FrozenDoors.Add(CampDoor.Type);
 
                 if (!sentMessage)
                 {
-                    SendCassieMessage(curDoor, room);
                     sentMessage = true;
+                    SendCassieMessage(curDoor, room);
                 }
 
                 if (plugin.Config.CloseDoor)
@@ -127,6 +130,7 @@ namespace CampingOpenGates
                     Timing.CallDelayed(plugin.Config.DoorFrozenTime, () =>
                     {
                         CampDoor.IsOpen = false;
+                        FrozenDoors.Remove(CampDoor.Type);
                     });
                 }
             }
@@ -148,6 +152,7 @@ namespace CampingOpenGates
                     {
                         if (PlayerScans[curPlayer.UserId]++ >= plugin.Config.CampingLimit)
                         {
+                            
                             PlayerScans[curPlayer.UserId] = 0;
                             OpenDoors(curPlayer.CurrentRoom.Type);
                         }
