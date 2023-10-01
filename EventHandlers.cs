@@ -66,11 +66,11 @@ namespace CampingOpenGates
         {
             if (curRoom == RoomType.Hcz079)
             {
-                return plugin.Config.CampRooms[curRoom].Any(DoorType => Door.Get(DoorType).IsOpen == false && FrozenDoors.Contains(DoorType));
+                return plugin.Config.CampRooms[curRoom].Any(DoorType => Door.Get(DoorType).IsOpen == false && !FrozenDoors.Contains(DoorType));
             }
             else
             {
-                return plugin.Config.CampRooms[curRoom].All(DoorType => Door.Get(DoorType).IsOpen == false && FrozenDoors.Contains(DoorType));
+                return plugin.Config.CampRooms[curRoom].All(DoorType => Door.Get(DoorType).IsOpen == false && !FrozenDoors.Contains(DoorType));
             }
         }
 
