@@ -65,11 +65,11 @@ namespace CampingOpenGates
         {
             if (curRoom == RoomType.Hcz079)
             {
-                return plugin.Config.CampRooms[curRoom].Any(DoorType => Door.Get(DoorType).IsOpen == false);
+                return plugin.Config.CampRooms[curRoom].Any(DoorType => Door.Get(DoorType).IsOpen == false && Door.Get(DoorType).IsMoving == false);
             }
             else
             {
-                return plugin.Config.CampRooms[curRoom].All(DoorType => Door.Get(DoorType).IsOpen == false);
+                return plugin.Config.CampRooms[curRoom].All(DoorType => Door.Get(DoorType).IsOpen == false && Door.Get(DoorType).IsMoving == false);
             }
         }
 
@@ -108,7 +108,7 @@ namespace CampingOpenGates
             {
                 Door CampDoor = Door.Get(curDoor);
 
-                if (CampDoor.IsOpen == true)
+                if (CampDoor.IsOpen == true || CampDoor.IsMoving == true)
                 {
                     continue;
                 }
